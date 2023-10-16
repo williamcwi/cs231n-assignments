@@ -93,12 +93,11 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    num_train = X.shape[0]
     probabilities = np.exp(scores)/np.exp(scores).sum(axis=1, keepdims=True)
-    loss = np.sum(-np.log(probabilities[range(num_train), y]))
+    loss = np.sum(-np.log(probabilities[range(N), y]))
 
     # Average. 
-    loss /= num_train
+    loss /= N
 
     # Regularization.
     loss += reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
@@ -113,7 +112,20 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    dscore = probabilities
+    dscore[range(N),y] -= 1
+    dscore /= N
+
+    grads['W2'] = h1.T.dot(dscore)
+    grads['W2'] += reg * 2 * W2
+    grads['b2'] = np.sum(dscore, axis = 0)
+
+    dh = dscore.dot(W2.T)
+    dh[h1 <= 0.00001] = 0
+
+    grads['W1'] = X.T.dot(dh)
+    grads['W1'] += reg * 2 * W1
+    grads['b1'] = np.sum(dh, axis = 0)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
