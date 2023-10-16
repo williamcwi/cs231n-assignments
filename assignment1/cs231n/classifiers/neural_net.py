@@ -169,7 +169,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      indices = np.random.choice(num_train, batch_size, replace = True)
+      X_batch = X[indices]
+      y_batch = y[indices]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -184,7 +186,10 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      self.params['W1'] -= grads['W1'] * learning_rate
+      self.params['W2'] -= grads['W2'] * learning_rate
+      self.params['b1'] -= grads['b1'] * learning_rate
+      self.params['b2'] -= grads['b2'] * learning_rate
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
