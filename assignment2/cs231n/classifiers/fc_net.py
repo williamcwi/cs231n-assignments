@@ -248,7 +248,18 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        layer_input = X
+        caches = {}
+        for i in range(self.num_layers): 
+            weight = self.params[f'W{i+1}']
+            bias = self.params[f'b{i+1}']
+
+            if i == self.num_layers-1: 
+                scores, cache = affine_forward(layer_input, weight, bias)
+            else:
+                layer_input, cache = affine_relu_forward(layer_input, weight, bias)
+            # print(cache)
+            caches[f'h{i+1}_cache'] = cache
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
