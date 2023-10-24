@@ -282,7 +282,18 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        loss, dx = softmax_loss(scores, y)
+        for i in range(self.num_layers): 
+            loss += 0.5 * self.reg * (np.sum(self.params[f'W{i+1}'] * self.params[f'W{i+1}']))
+        
+        dx, dw, db = affine_backward(dx, caches[f'h{self.num_layers}_cache'])
+        grads[f'W{self.num_layers}'] = dw + self.reg * self.params[f'W{self.num_layers}']
+        grads[f'b{self.num_layers}'] = db
+
+        for i in reversed(range(self.num_layers-1)):
+            dx, dw, db = affine_relu_backward(dx, caches[f'h{i+1}_cache'])
+            grads[f'W{i+1}'] = dw + self.reg * self.params[f'W{i+1}']
+            grads[f'b{i+1}'] = db
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
