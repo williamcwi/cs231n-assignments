@@ -189,6 +189,10 @@ class FullyConnectedNet(object):
             self.params[f'W{i+1}'] = weight_scale * np.random.randn(layer_dim, hd)
             self.params[f'b{i+1}'] = np.zeros(hd)
 
+            if self.normalization is not None:
+                self.params[f'gamma{i+1}'] = np.ones(hd)
+                self.params[f'beta{i+1}'] = np.zeros(hd)
+
             layer_dim = hd
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -257,7 +261,13 @@ class FullyConnectedNet(object):
             if i == self.num_layers-1: 
                 scores, cache = affine_forward(layer_input, weight, bias)
             else:
-                layer_input, cache = affine_relu_forward(layer_input, weight, bias)
+                if self.normalization == 'batchnorm':
+                    gamma = self.params[f'gamma{i+1}']
+                    beta = self.params[f'beta{i+1}']
+                    bn_param = self.bn_params[i]
+                    layer_input, cache = affine_bn_relu_forward(layer_input, weight, bias, gamma, beta, bn_param)
+                else: 
+                    layer_input, cache = affine_relu_forward(layer_input, weight, bias)
             # print(cache)
             caches[f'h{i+1}_cache'] = cache
         ############################################################################
@@ -291,7 +301,12 @@ class FullyConnectedNet(object):
         grads[f'b{self.num_layers}'] = db
 
         for i in reversed(range(self.num_layers-1)):
-            dx, dw, db = affine_relu_backward(dx, caches[f'h{i+1}_cache'])
+            if self.normalization == 'batchnorm':
+                dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(dx, caches[f'h{i+1}_cache'])
+                grads[f'gamma{i+1}'] = dgamma
+                grads[f'beta{i+1}'] = dbeta
+            else: 
+                dx, dw, db = affine_relu_backward(dx, caches[f'h{i+1}_cache'])
             grads[f'W{i+1}'] = dw + self.reg * self.params[f'W{i+1}']
             grads[f'b{i+1}'] = db
         ############################################################################
