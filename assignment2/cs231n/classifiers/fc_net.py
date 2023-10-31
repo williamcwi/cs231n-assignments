@@ -189,7 +189,7 @@ class FullyConnectedNet(object):
             self.params[f'W{i+1}'] = weight_scale * np.random.randn(layer_dim, hd)
             self.params[f'b{i+1}'] = np.zeros(hd)
 
-            if self.normalization is not None:
+            if self.normalization == 'batchnorm' and i != len(hidden_dims):
                 self.params[f'gamma{i+1}'] = np.ones(hd)
                 self.params[f'beta{i+1}'] = np.zeros(hd)
 
@@ -221,7 +221,6 @@ class FullyConnectedNet(object):
         # Cast all parameters to the correct datatype
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
-
 
     def loss(self, X, y=None):
         """
