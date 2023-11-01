@@ -268,7 +268,11 @@ class FullyConnectedNet(object):
                     layer_input, cache = affine_norm_relu_forward(layer_input, weight, bias, gamma, beta, bn_param, norm_mode)
                 else: 
                     layer_input, cache = affine_relu_forward(layer_input, weight, bias)
-            # print(cache)
+                
+                # dropout
+                if self.use_dropout:
+                    layer_input, dropout_cache = dropout_forward(layer_input, self.dropout_param)
+                    caches[f'h{i+1}_dropout_cache'] = dropout_cache
             caches[f'h{i+1}_cache'] = cache
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -301,8 +305,13 @@ class FullyConnectedNet(object):
         grads[f'b{self.num_layers}'] = db
 
         for i in reversed(range(self.num_layers-1)):
+            # dropout
+            if self.use_dropout:
+                dropout_cache = caches[f'h{i+1}_dropout_cache']
+                dx = dropout_backward(dx, dropout_cache)
+
             if self.normalization is not None:
-                dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(dx, caches[f'h{i+1}_cache'])
+                dx, dw, db, dgamma, dbeta = affine_norm_relu_backward(dx, caches[f'h{i+1}_cache'])
                 grads[f'gamma{i+1}'] = dgamma
                 grads[f'beta{i+1}'] = dbeta
             else: 
