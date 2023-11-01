@@ -53,7 +53,7 @@ def affine_norm_relu_forward(x, w, b, gamma, beta, bn_param, norm_mode):
     return out, cache
 
 
-def affine_bn_relu_backward(dout, cache):
+def affine_norm_relu_backward(dout, cache):
     """
     Backward pass for the affine-nb-relu convenience layer
     """

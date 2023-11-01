@@ -349,7 +349,7 @@ def norm_forward(x, gamma, beta, bn_param):
     - cache: A tuple of values needed in the backward pass
     """
     out, cache = None, None
-    eps = ln_param.get('eps', 1e-5)
+    eps = bn_param.get('eps', 1e-5)
     ###########################################################################
     # TODO: Implement the training-time forward pass for layer norm.          #
     # Normalize the incoming data, and scale and  shift the normalized data   #
