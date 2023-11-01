@@ -113,7 +113,7 @@ def relu_backward(dout, cache):
     return dx
 
 
-def batchnorm_forward(x, gamma, beta, bn_param):
+def batchnorm_forward(x, gamma, beta, bn_param, norm_mode):
     """
     Forward pass for batch normalization.
 
@@ -146,12 +146,18 @@ def batchnorm_forward(x, gamma, beta, bn_param):
       - momentum: Constant for running mean / variance.
       - running_mean: Array of shape (D,) giving running mean of features
       - running_var Array of shape (D,) giving running variance of features
+    - norm_mode: 
+      - 0: batchnorm
+      - 1: layernorm
 
     Returns a tuple of:
     - out: of shape (N, D)
     - cache: A tuple of values needed in the backward pass
     """
-    mode = bn_param['mode']
+    if norm_mode == 0:
+        mode = bn_param['mode']
+    else:
+        mode = 'train'
     eps = bn_param.get('eps', 1e-5)
     momentum = bn_param.get('momentum', 0.9)
 
@@ -182,16 +188,23 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Referencing the original paper (https://arxiv.org/abs/1502.03167)   #
         # might prove to be helpful.                                          #
         #######################################################################
+        if norm_mode == 1:
+            x, gamma, beta = x.T, gamma.reshape(-1,1), beta.reshape(-1,1)
+        
         sample_mean = np.mean(x, axis=0)
         sample_var = np.var(x, axis=0) + eps
         sample_sd = np.sqrt(sample_var)
         x_hat = (x - sample_mean) / sample_sd
         out = gamma * x_hat + beta
 
-        running_mean = momentum * running_mean + (1 - momentum) * sample_mean
-        running_var = momentum * running_var + (1 - momentum) * sample_var
+        if norm_mode == 0:
+            running_mean = momentum * running_mean + (1 - momentum) * sample_mean
+            running_var = momentum * running_var + (1 - momentum) * sample_var
         
-        cache = x, sample_mean, x_hat, gamma, sample_var, sample_sd
+        cache = x, sample_mean, x_hat, gamma, sample_var, sample_sd, norm_mode
+        
+        if norm_mode == 1:
+            out = out.T
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -241,7 +254,9 @@ def batchnorm_backward(dout, cache):
     # Referencing the original paper (https://arxiv.org/abs/1502.03167)       #
     # might prove to be helpful.                                              #
     ###########################################################################
-    x, mean, x_hat, gamma, var, sd = cache
+    x, mean, x_hat, gamma, var, sd, norm_mode = cache
+    if norm_mode == 1:
+        dout = dout.T
     N = dout.shape[0]
 
     dbeta = np.sum(dout, axis=0)
@@ -258,6 +273,8 @@ def batchnorm_backward(dout, cache):
 
     dx = dfdz*dzdx + np.sum(dfdz*dzdu,axis=0)*dudx + \
          np.sum(dfdz*dzdv,axis=0)*(dvdx+dvdu*dudx)
+    if norm_mode == 1:
+        dx = dx.T
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -288,16 +305,20 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    x, mean, x_hat, gamma, var, sd = cache
+    x, mean, x_hat, gamma, var, sd, norm_mode = cache
+    if norm_mode == 1:
+        dout = dout.T
     N = dout.shape[0]
 
-    dbeta = np.sum(dout, axis=0)
-    dgamma = np.sum(dout * x_hat, axis=0)
+    dbeta = np.sum(dout, axis=norm_mode)
+    dgamma = np.sum(dout * x_hat, axis=norm_mode)
 
     dfdz = dout * gamma
     dfdz_sum = np.sum(dfdz,axis=0)
     dx = dfdz - dfdz_sum/N - np.sum(dfdz * x_hat,axis=0) * x_hat/N
     dx /= sd
+    if norm_mode == 1:
+        dx = dx.T
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -305,7 +326,7 @@ def batchnorm_backward_alt(dout, cache):
     return dx, dgamma, dbeta
 
 
-def layernorm_forward(x, gamma, beta, ln_param):
+def norm_forward(x, gamma, beta, bn_param):
     """
     Forward pass for layer normalization.
 
@@ -380,7 +401,7 @@ def layernorm_backward(dout, cache):
     # implementation of batch normalization. The hints to the forward pass    #
     # still apply!                                                            #
     ###########################################################################
-    x, mean, x_hat, gamma, var, sd = cache
+    x, mean, x_hat, gamma, var, sd, norm_mode = cache
     dout = dout.T
     N = dout.shape[0]
 
