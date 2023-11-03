@@ -326,98 +326,6 @@ def batchnorm_backward_alt(dout, cache):
     return dx, dgamma, dbeta
 
 
-def norm_forward(x, gamma, beta, bn_param):
-    """
-    Forward pass for layer normalization.
-
-    During both training and test-time, the incoming data is normalized per data-point,
-    before being scaled by gamma and beta parameters identical to that of batch normalization.
-    
-    Note that in contrast to batch normalization, the behavior during train and test-time for
-    layer normalization are identical, and we do not need to keep track of running averages
-    of any sort.
-
-    Input:
-    - x: Data of shape (N, D)
-    - gamma: Scale parameter of shape (D,)
-    - beta: Shift paremeter of shape (D,)
-    - ln_param: Dictionary with the following keys:
-        - eps: Constant for numeric stability
-
-    Returns a tuple of:
-    - out: of shape (N, D)
-    - cache: A tuple of values needed in the backward pass
-    """
-    out, cache = None, None
-    eps = bn_param.get('eps', 1e-5)
-    ###########################################################################
-    # TODO: Implement the training-time forward pass for layer norm.          #
-    # Normalize the incoming data, and scale and  shift the normalized data   #
-    #  using gamma and beta.                                                  #
-    # HINT: this can be done by slightly modifying your training-time         #
-    # implementation of  batch normalization, and inserting a line or two of  #
-    # well-placed code. In particular, can you think of any matrix            #
-    # transformations you could perform, that would enable you to copy over   #
-    # the batch norm code and leave it almost unchanged?                      #
-    ###########################################################################
-    x, gamma, beta = x.T, gamma.reshape(-1,1), beta.reshape(-1,1)
-
-    sample_mean = np.mean(x, axis=0)
-    sample_var = np.var(x, axis=0) + eps
-    sample_sd = np.sqrt(sample_var)
-    x_hat = (x - sample_mean) / sample_sd
-    out = gamma * x_hat + beta
-    
-    cache = x, sample_mean, x_hat, gamma, sample_var, sample_sd
-    
-    out = out.T
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
-    return out, cache
-
-
-def layernorm_backward(dout, cache):
-    """
-    Backward pass for layer normalization.
-
-    For this implementation, you can heavily rely on the work you've done already
-    for batch normalization.
-
-    Inputs:
-    - dout: Upstream derivatives, of shape (N, D)
-    - cache: Variable of intermediates from layernorm_forward.
-
-    Returns a tuple of:
-    - dx: Gradient with respect to inputs x, of shape (N, D)
-    - dgamma: Gradient with respect to scale parameter gamma, of shape (D,)
-    - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
-    """
-    dx, dgamma, dbeta = None, None, None
-    ###########################################################################
-    # TODO: Implement the backward pass for layer norm.                       #
-    #                                                                         #
-    # HINT: this can be done by slightly modifying your training-time         #
-    # implementation of batch normalization. The hints to the forward pass    #
-    # still apply!                                                            #
-    ###########################################################################
-    x, mean, x_hat, gamma, var, sd, norm_mode = cache
-    dout = dout.T
-    N = dout.shape[0]
-
-    dbeta = np.sum(dout, axis=1)
-    dgamma = np.sum(dout * x_hat, axis=1)
-    dfdz = dout * gamma
-    dfdz_sum = np.sum(dfdz,axis=0)
-    dx = dfdz - dfdz_sum/N - np.sum(dfdz * x_hat,axis=0) * x_hat/N
-    dx /= sd
-    dx = dx.T
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
-    return dx, dgamma, dbeta
-
-
 def dropout_forward(x, dropout_param):
     """
     Performs the forward pass for (inverted) dropout.
@@ -785,7 +693,20 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # the bulk of the code is similar to both train-time batch normalization  #
     # and layer normalization!                                                # 
     ###########################################################################
-    pass
+    N, C, H, W = x.shape
+    size = (N*G, C//G *H*W)
+    x = x.reshape(size).T
+    gamma = gamma.reshape(1, C, 1, 1)
+    beta = beta.reshape(1, C, 1, 1)
+    
+    sample_mean = np.mean(x, axis=0)
+    sample_var = np.var(x, axis=0) + eps
+    sample_sd = np.sqrt(sample_var)
+    x_hat = (x - sample_mean) / sample_sd
+    x_hat = x_hat.T.reshape(N, C, H, W)
+    out = gamma * x_hat + beta
+
+    cache = x, sample_mean, x_hat, gamma, sample_var, sample_sd
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
