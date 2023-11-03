@@ -706,7 +706,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     x_hat = x_hat.T.reshape(N, C, H, W)
     out = gamma * x_hat + beta
 
-    cache = x, sample_mean, x_hat, gamma, sample_var, sample_sd
+    cache = x, sample_mean, x_hat, gamma, sample_var, sample_sd, size
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -732,7 +732,21 @@ def spatial_groupnorm_backward(dout, cache):
     # TODO: Implement the backward pass for spatial group normalization.      #
     # This will be extremely similar to the layer norm implementation.        #
     ###########################################################################
-    pass
+    x, mean, x_hat, gamma, var, sd, size = cache
+    N, C, H, W = dout.shape
+
+    dbeta = np.sum(dout, axis=(0,2,3), keepdims=True)
+    dgamma = np.sum(dout * x_hat, axis=(0,2,3), keepdims=True)
+
+    x_hat = x_hat.reshape(size).T
+    M = x_hat.shape[0]
+
+    dfdz = dout * gamma
+    dfdz = dfdz.reshape(size).T
+    dfdz_sum = np.sum(dfdz,axis=0)
+    dx = dfdz - dfdz_sum/M - np.sum(dfdz * x_hat,axis=0) * x_hat/M
+    dx /= sd
+    dx = dx.T.reshape(N, C, H, W)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
