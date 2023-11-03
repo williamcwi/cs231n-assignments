@@ -598,8 +598,7 @@ def conv_backward_naive(dout, cache):
             for k in range(F): # dw
                 dw[k ,: ,: ,:] += np.sum(pad_x_filter * (dout[:, k, i, j])[:, None, None, None], axis=0)
             for n in range(N): # dx_pad
-                dx_pad[n, :, h_step:h_step+HH, w_step:w_step+WW] += np.sum((w[:, :, :, :] * 
-                                                 (dout[n, :, i, j])[:,None ,None, None]), axis=0)
+                dx_pad[n, :, h_step:h_step+HH, w_step:w_step+WW] += np.sum((w[:, :, :, :] * (dout[n, :, i, j])[:,None ,None, None]), axis=0)
     dx = dx_pad[:,:,pad:-pad,pad:-pad]
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -642,7 +641,6 @@ def max_pool_forward_naive(x, pool_param):
             w_step = j*stride
             x_filter = x[:, :, h_step:h_step+pool_height, w_step:w_step+pool_width]
             out[:, :, i, j] = np.max(x_filter, axis=(2,3))
-            
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -665,7 +663,19 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max-pooling backward pass                           #
     ###########################################################################
-    pass
+    x, pool_param = cache
+    pool_height, pool_width, stride = pool_param.values()
+    N, C, H, W = x.shape
+    H_out = int(1 + (H - pool_height) / stride)
+    W_out = int(1 + (W - pool_width) / stride)
+    dx = np.zeros_like(x)
+
+    for i in range(H_out):
+        for j in range(W_out):
+            h_step = i*stride
+            w_step = j*stride
+            x_filter = x[:, :, h_step:h_step+pool_height, w_step:w_step+pool_width]
+            dx[:,:,h_step : h_step+pool_height, w_step : w_step+pool_width] += (x_filter == (np.max(x_filter,axis=(2,3)))[:,:,None,None]) * (dout[:,:,i,j])[:,:,None,None]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
