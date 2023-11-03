@@ -541,7 +541,6 @@ def conv_forward_naive(x, w, b, conv_param):
     H_out = int(1 + (H + 2 * pad - HH) / stride)
     W_out = int(1 + (W + 2 * pad - WW) / stride)
     
-
     out = np.zeros((N, F, H_out, W_out))
 
     for i in range(H_out): 
@@ -574,7 +573,30 @@ def conv_backward_naive(dout, cache):
     """
     dx, dw, db = None, None, None
     ###########################################################################
-    # TODO: Implement the convolutional backward pass.                        #
+    x, w, b, conv_param = cache
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    stride, pad = conv_param.values()
+    pad_x = np.pad(x, ((0,0),(0,0),(pad,pad),(pad,pad)), 'constant')
+    H_out = int(1 + (H + 2 * pad - HH) / stride)
+    W_out = int(1 + (W + 2 * pad - WW) / stride)
+
+    dx = np.zeros_like(x)
+    dx_pad = np.zeros_like(pad_x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+
+    db = np.sum(dout, axis = (0,2,3))
+
+    for i in range(H_out):
+      for j in range(W_out):
+          pad_x_masked = pad_x[:, :, i*stride:i*stride+HH, j*stride:j*stride+WW]
+          for k in range(F): # dw
+              dw[k ,: ,: ,:] += np.sum(pad_x_masked * (dout[:, k, i, j])[:, None, None, None], axis=0)
+          for n in range(N): # dx_pad
+              dx_pad[n, :, i*stride:i*stride+HH, j*stride:j*stride+WW] += np.sum((w[:, :, :, :] * 
+                                                 (dout[n, :, i, j])[:,None ,None, None]), axis=0)
+    dx = dx_pad[:,:,pad:-pad,pad:-pad]
     ###########################################################################
     pass
     ###########################################################################
